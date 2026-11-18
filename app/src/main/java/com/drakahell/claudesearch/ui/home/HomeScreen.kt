@@ -1,5 +1,8 @@
 package com.drakahell.claudesearch.ui.home
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts.PickVisualMedia
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -18,6 +21,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -25,6 +29,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
@@ -33,14 +38,25 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.drakahell.claudesearch.R
 import com.drakahell.claudesearch.ui.theme.ClaudeSearchTheme
+import com.drakahell.claudesearch.ui.trace.TraceActivity
 
 /** Screen entry point: collects state from the ViewModel and passes it to the UI. */
 @Composable
 fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    // System Photo Picker: no storage permission needed.
+    val pickImage = rememberLauncherForActivityResult(PickVisualMedia()) { uri ->
+        if (uri != null) context.startActivity(TraceActivity.imageIntent(context, uri))
+    }
+
     HomeScreen(
         uiState = uiState,
-        onTryDemoClick = viewModel::onTryDemoClick,
+        onPickPhotoClick = {
+            pickImage.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
+        },
+        onUseSampleClick = { context.startActivity(TraceActivity.sampleIntent(context)) },
     )
 }
 
@@ -48,7 +64,8 @@ fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
 @Composable
 fun HomeScreen(
     uiState: HomeUiState,
-    onTryDemoClick: () -> Unit,
+    onPickPhotoClick: () -> Unit,
+    onUseSampleClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
@@ -76,15 +93,17 @@ fun HomeScreen(
             )
             Spacer(Modifier.height(32.dp))
             Button(
-                onClick = onTryDemoClick,
-                enabled = uiState.isDemoAvailable,
+                onClick = onPickPhotoClick,
                 modifier = Modifier.fillMaxWidth().height(56.dp),
             ) {
-                Text(
-                    if (uiState.isDemoAvailable) stringResource(R.string.home_try_demo)
-                    else stringResource(R.string.home_try_demo) + " · " +
-                        stringResource(R.string.home_coming_soon)
-                )
+                Text(stringResource(R.string.home_pick_photo))
+            }
+            Spacer(Modifier.height(12.dp))
+            OutlinedButton(
+                onClick = onUseSampleClick,
+                modifier = Modifier.fillMaxWidth().height(56.dp),
+            ) {
+                Text(stringResource(R.string.home_use_sample))
             }
 
             Spacer(Modifier.height(40.dp))
@@ -172,6 +191,6 @@ private fun StatusCard(title: String, description: String, isOk: Boolean) {
 @Composable
 private fun HomeScreenPreview() {
     ClaudeSearchTheme {
-        HomeScreen(uiState = HomeUiState(), onTryDemoClick = {})
+        HomeScreen(uiState = HomeUiState(), onPickPhotoClick = {}, onUseSampleClick = {})
     }
 }

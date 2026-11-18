@@ -23,6 +23,11 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <activity
+            android:name=".ui.trace.TraceActivity"
+            android:exported="false"
+            android:theme="@style/Theme.ClaudeSearch" />
     </application>
 
 </manifest>

@@ -10,8 +10,6 @@ import kotlinx.coroutines.flow.asStateFlow
  * the screen itself makes no decisions and only renders this state.
  */
 data class HomeUiState(
-    /** Whether the trace-on-image demo is available (step 2). */
-    val isDemoAvailable: Boolean = false,
     /** Whether the app is set as the default assistant (step 4). */
     val isAssistantEnabled: Boolean = false,
     /** Whether Gemini is configured (step 3). */
@@ -22,8 +20,4 @@ class HomeViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
-
-    fun onTryDemoClick() {
-        // Step 2: open the trace screen with a sample image.
-    }
 }

@@ -4,7 +4,8 @@
     <!-- Home screen -->
     <string name="home_title">Обведи и найди</string>
     <string name="home_subtitle">Обведите пальцем что угодно на экране — объект, текст или товар, — и получите ответ.</string>
-    <string name="home_try_demo">Попробовать на картинке</string>
+    <string name="home_pick_photo">Выбрать фото</string>
+    <string name="home_use_sample">Пример картинки</string>
     <string name="home_setup_section">Настройка</string>
     <string name="home_assistant_title">Вызов из любого приложения</string>
     <string name="home_assistant_enabled">Включено: долгое нажатие кнопки питания</string>
@@ -12,5 +13,15 @@
     <string name="home_ai_title">Ответы ИИ</string>
     <string name="home_ai_ready">Gemini подключён</string>
     <string name="home_ai_not_ready">Gemini ещё не подключён</string>
-    <string name="home_coming_soon">Скоро</string>
+
+    <!-- Trace screen -->
+    <string name="trace_hint">Обведите или коснитесь объекта</string>
+    <string name="trace_close">Закрыть</string>
+    <string name="trace_selection_title">Выделенный фрагмент</string>
+    <string name="trace_selection_size">%1$d × %2$d px</string>
+    <string name="trace_ai_placeholder">Ответ Gemini появится на шаге 3</string>
+    <string name="trace_crop_description">Выделенный фрагмент изображения</string>
+    <string name="trace_reset">Выделить заново</string>
+    <string name="trace_ask_ai">Спросить ИИ</string>
+    <string name="trace_error_load">Не удалось открыть картинку</string>
 </resources>
