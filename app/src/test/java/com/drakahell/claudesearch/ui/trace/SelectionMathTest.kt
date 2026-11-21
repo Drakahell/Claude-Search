@@ -74,4 +74,24 @@ class SelectionMathTest {
         val px = SelectionMath.toPixelRect(Rect(10.4f, 20.6f, 99.2f, 2500f), IntSize(1000, 2000))
         assertEquals(IntRect(10, 20, 100, 2000), px)
     }
+
+    @Test
+    fun shift_isZero_whenSelectionAboveSheet() {
+        val shift = SelectionMath.verticalShiftToReveal(Rect(0f, 100f, 100f, 500f), 2000f, 1000f, 100f)
+        assertEquals(0f, shift)
+    }
+
+    @Test
+    fun shift_movesSelectionAboveSheet() {
+        // Sheet covers y > 1000; selection bottom is 1300 -> move up by 300.
+        val shift = SelectionMath.verticalShiftToReveal(Rect(0f, 900f, 100f, 1300f), 2000f, 1000f, 100f)
+        assertEquals(-300f, shift)
+    }
+
+    @Test
+    fun shift_neverPushesSelectionUnderTopBar() {
+        // Tall selection: can move up only until its top reaches topReserved (100).
+        val shift = SelectionMath.verticalShiftToReveal(Rect(0f, 300f, 100f, 1800f), 2000f, 1000f, 100f)
+        assertEquals(-200f, shift)
+    }
 }

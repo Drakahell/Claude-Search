@@ -67,6 +67,24 @@ object SelectionMath {
         return clipped
     }
 
+    /**
+     * How far (negative = up) to move the image so that [selectionInView] is not hidden
+     * behind a bottom sheet of height [bottomInset]. The selection is never pushed above
+     * [topReserved] (space for the close button).
+     */
+    fun verticalShiftToReveal(
+        selectionInView: Rect,
+        containerHeight: Float,
+        bottomInset: Float,
+        topReserved: Float,
+    ): Float {
+        val visibleBottom = containerHeight - bottomInset
+        val overlap = selectionInView.bottom - visibleBottom
+        if (overlap <= 0f) return 0f
+        val maxUp = (selectionInView.top - topReserved).coerceAtLeast(0f)
+        return -minOf(overlap, maxUp)
+    }
+
     /** Rounds a selection outwards to whole pixels that are guaranteed to fit in [imageSize]. */
     fun toPixelRect(rect: Rect, imageSize: IntSize): IntRect {
         val left = floor(rect.left).toInt().coerceIn(0, imageSize.width - 1)

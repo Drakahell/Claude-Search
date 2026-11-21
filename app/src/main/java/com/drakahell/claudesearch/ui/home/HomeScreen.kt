@@ -39,10 +39,16 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import com.drakahell.claudesearch.R
 import com.drakahell.claudesearch.ui.theme.ClaudeSearchTheme
 import com.drakahell.claudesearch.ui.trace.TraceActivity
+import com.drakahell.claudesearch.ui.trace.formatPauseEnd
+import com.drakahell.claudesearch.ui.settings.SettingsActivity
+import com.drakahell.claudesearch.data.settings.SearchProvider
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.ui.res.painterResource
 
 /** Screen entry point: collects state from the ViewModel and passes it to the UI. */
 @Composable
-fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
+fun HomeRoute(viewModel: HomeViewModel = viewModel(factory = HomeViewModel.Factory)) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
@@ -57,6 +63,7 @@ fun HomeRoute(viewModel: HomeViewModel = viewModel()) {
             pickImage.launch(PickVisualMediaRequest(PickVisualMedia.ImageOnly))
         },
         onUseSampleClick = { context.startActivity(TraceActivity.sampleIntent(context)) },
+        onSettingsClick = { context.startActivity(SettingsActivity.intent(context)) },
     )
 }
 
@@ -66,6 +73,7 @@ fun HomeScreen(
     uiState: HomeUiState,
     onPickPhotoClick: () -> Unit,
     onUseSampleClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Scaffold(modifier = modifier.fillMaxSize()) { innerPadding ->
@@ -74,9 +82,15 @@ fun HomeScreen(
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState())
                 .padding(innerPadding)
-                .padding(horizontal = 24.dp, vertical = 32.dp),
+                .padding(horizontal = 24.dp, vertical = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            IconButton(onClick = onSettingsClick, modifier = Modifier.align(Alignment.End)) {
+                Icon(
+                    painter = painterResource(R.drawable.ic_settings),
+                    contentDescription = stringResource(R.string.home_settings),
+                )
+            }
             HeroBadge()
             Spacer(Modifier.height(24.dp))
             Text(
@@ -122,13 +136,20 @@ fun HomeScreen(
                     ),
                     isOk = uiState.isAssistantEnabled,
                 )
+                val pausedUntil = uiState.geminiPausedUntilMillis
                 StatusCard(
-                    title = stringResource(R.string.home_ai_title),
-                    description = stringResource(
-                        if (uiState.isAiReady) R.string.home_ai_ready
-                        else R.string.home_ai_not_ready
-                    ),
-                    isOk = uiState.isAiReady,
+                    title = stringResource(R.string.home_search_title),
+                    description = when {
+                        uiState.preferredProvider == SearchProvider.GOOGLE_LENS ->
+                            stringResource(R.string.home_search_lens)
+                        pausedUntil != null -> stringResource(
+                            R.string.home_search_gemini_paused,
+                            formatPauseEnd(LocalContext.current, pausedUntil),
+                        )
+                        else -> stringResource(R.string.home_search_gemini)
+                    },
+                    isOk = true,
+                    onClick = onSettingsClick,
                 )
             }
         }
@@ -154,11 +175,21 @@ private fun HeroBadge() {
 }
 
 @Composable
-private fun StatusCard(title: String, description: String, isOk: Boolean) {
+private fun StatusCard(
+    title: String,
+    description: String,
+    isOk: Boolean,
+    onClick: (() -> Unit)? = null,
+) {
     Card(
+        onClick = onClick ?: {},
+        enabled = onClick != null,
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            // Non-clickable cards are "disabled" but must look the same.
+            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            disabledContentColor = MaterialTheme.colorScheme.onSurface,
         ),
     ) {
         Row(
@@ -191,6 +222,11 @@ private fun StatusCard(title: String, description: String, isOk: Boolean) {
 @Composable
 private fun HomeScreenPreview() {
     ClaudeSearchTheme {
-        HomeScreen(uiState = HomeUiState(), onPickPhotoClick = {}, onUseSampleClick = {})
+        HomeScreen(
+            uiState = HomeUiState(),
+            onPickPhotoClick = {},
+            onUseSampleClick = {},
+            onSettingsClick = {},
+        )
     }
 }

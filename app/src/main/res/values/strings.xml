@@ -1,27 +1,55 @@
 <resources>
     <string name="app_name">Claude Search</string>
 
+    <!-- Providers -->
+    <string name="provider_gemini">Gemini</string>
+    <string name="provider_google_lens">Google Lens</string>
+
     <!-- Home screen -->
     <string name="home_title">Обведи и найди</string>
     <string name="home_subtitle">Обведите пальцем что угодно на экране — объект, текст или товар, — и получите ответ.</string>
     <string name="home_pick_photo">Выбрать фото</string>
     <string name="home_use_sample">Пример картинки</string>
     <string name="home_setup_section">Настройка</string>
+    <string name="home_settings">Настройки</string>
     <string name="home_assistant_title">Вызов из любого приложения</string>
     <string name="home_assistant_enabled">Включено: долгое нажатие кнопки питания</string>
     <string name="home_assistant_disabled">Не настроено — назначьте приложение ассистентом</string>
-    <string name="home_ai_title">Ответы ИИ</string>
-    <string name="home_ai_ready">Gemini подключён</string>
-    <string name="home_ai_not_ready">Gemini ещё не подключён</string>
+    <string name="home_search_title">Поиск</string>
+    <string name="home_search_gemini">Ответы Gemini прямо в приложении</string>
+    <string name="home_search_lens">Через Google Lens</string>
+    <string name="home_search_gemini_paused">Лимит Gemini исчерпан — до %1$s используется Google Lens</string>
 
     <!-- Trace screen -->
     <string name="trace_hint">Обведите или коснитесь объекта</string>
     <string name="trace_close">Закрыть</string>
-    <string name="trace_selection_title">Выделенный фрагмент</string>
-    <string name="trace_selection_size">%1$d × %2$d px</string>
-    <string name="trace_ai_placeholder">Ответ Gemini появится на шаге 3</string>
     <string name="trace_crop_description">Выделенный фрагмент изображения</string>
     <string name="trace_reset">Выделить заново</string>
-    <string name="trace_ask_ai">Спросить ИИ</string>
     <string name="trace_error_load">Не удалось открыть картинку</string>
+
+    <!-- Search panel -->
+    <string name="search_thinking">Gemini смотрит на выделенное…</string>
+    <string name="search_follow_up_hint">Уточняющий вопрос</string>
+    <string name="search_send">Отправить</string>
+    <string name="search_retry">Повторить</string>
+    <string name="search_search_with_lens">Искать в Google Lens</string>
+    <string name="search_open_google_app">Открыть в приложении Google</string>
+    <string name="search_lens_quota_fallback">Лимит бесплатных запросов Gemini исчерпан. До %1$s поиск идёт через Google Lens.</string>
+    <string name="search_lens_unavailable_fallback">Gemini сейчас недоступен — показываем результаты Google Lens.</string>
+    <string name="search_error_access_denied">Нет доступа к Gemini. Проверьте настройки проекта Firebase.</string>
+    <string name="search_lens_failed">Не удалось открыть Google Lens</string>
+    <string name="search_error_quota">Лимит бесплатных запросов Gemini исчерпан.</string>
+    <string name="search_error_region">Gemini недоступен в вашей стране. Используйте Google Lens — его можно выбрать в настройках.</string>
+    <string name="search_error_no_internet">Нет подключения к интернету.</string>
+    <string name="search_error_blocked">Gemini не может ответить на этот запрос.</string>
+    <string name="search_error_other">Не удалось получить ответ. Попробуйте ещё раз.</string>
+
+    <!-- Settings -->
+    <string name="settings_title">Настройки</string>
+    <string name="settings_back">Назад</string>
+    <string name="settings_search_section">Поиск по выделенному</string>
+    <string name="settings_gemini_description">Ответ ИИ прямо в приложении, можно задавать уточняющие вопросы. Если лимит бесплатных запросов исчерпан, временно используется Google Lens.</string>
+    <string name="settings_lens_description">Результаты Google Lens показываются прямо в приложении, в панели под выделением.</string>
+    <string name="settings_gemini_paused">Лимит Gemini исчерпан. До %1$s поиск идёт через Google Lens.</string>
+    <string name="settings_resume_gemini">Попробовать Gemini снова</string>
 </resources>

@@ -21,6 +21,9 @@ import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -76,7 +79,11 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.onSizeChanged
+import android.widget.Toast
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import com.drakahell.claudesearch.data.lens.GoogleLens
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -98,10 +105,33 @@ private val GlowColors = listOf(Color(0xFF7C4DFF), Color(0xFF00E5FF), Color(0xFF
 @Composable
 fun TraceRoute(viewModel: TraceViewModel, onClose: () -> Unit) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val scope = rememberCoroutineScope()
+
+    val actions = remember(viewModel) {
+        SearchPanelActions(
+            onClearSelection = viewModel::clearSelection,
+            onAskFollowUp = viewModel::askFollowUp,
+            onRetry = viewModel::retry,
+            onShowLens = viewModel::showLens,
+            onOpenGoogleApp = {
+                val crop = (viewModel.uiState.value as? TraceUiState.Ready)?.selection?.crop
+                if (crop != null) {
+                    scope.launch {
+                        val result = GoogleLens.open(context, crop.asAndroidBitmap())
+                        if (result == GoogleLens.Result.FAILED) {
+                            Toast.makeText(context, R.string.search_lens_failed, Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }
+            },
+        )
+    }
+
     TraceScreen(
         uiState = uiState,
         onSelectionMade = viewModel::onSelectionMade,
-        onClearSelection = viewModel::clearSelection,
+        actions = actions,
         onClose = onClose,
     )
 }
@@ -110,19 +140,23 @@ fun TraceRoute(viewModel: TraceViewModel, onClose: () -> Unit) {
 fun TraceScreen(
     uiState: TraceUiState,
     onSelectionMade: (Rect) -> Unit,
-    onClearSelection: () -> Unit,
+    actions: SearchPanelActions,
     onClose: () -> Unit,
 ) {
     val selection = (uiState as? TraceUiState.Ready)?.selection
 
     // "Back" first removes the selection, the second "Back" closes the screen.
-    BackHandler(enabled = selection != null, onBack = onClearSelection)
+    BackHandler(enabled = selection != null, onBack = actions.onClearSelection)
 
-    Box(
+    // Height of the bottom sheet, used to move the image so the selection stays visible.
+    var panelHeightPx by remember { mutableIntStateOf(0) }
+
+    BoxWithConstraints(
         Modifier
             .fillMaxSize()
             .background(Color.Black)
     ) {
+        val screenHeight = maxHeight
         when (uiState) {
             TraceUiState.Loading -> CircularProgressIndicator(Modifier.align(Alignment.Center))
             is TraceUiState.Error -> Text(
@@ -133,6 +167,7 @@ fun TraceScreen(
             is TraceUiState.Ready -> TraceCanvas(
                 image = uiState.image,
                 selection = uiState.selection?.bounds,
+                bottomInsetPx = if (selection != null) panelHeightPx.toFloat() else 0f,
                 onSelectionMade = onSelectionMade,
             )
         }
@@ -143,9 +178,11 @@ fun TraceScreen(
             modifier = Modifier.align(Alignment.TopCenter),
         )
 
-        SelectionPanel(
+        SearchPanel(
             selection = selection,
-            onClearSelection = onClearSelection,
+            actions = actions,
+            screenHeight = screenHeight,
+            onHeightChanged = { panelHeightPx = it },
             modifier = Modifier.align(Alignment.BottomCenter),
         )
     }
@@ -159,6 +196,7 @@ fun TraceScreen(
 private fun TraceCanvas(
     image: ImageBitmap,
     selection: Rect?,
+    bottomInsetPx: Float,
     onSelectionMade: (Rect) -> Unit,
 ) {
     val density = LocalDensity.current
@@ -200,9 +238,28 @@ private fun TraceCanvas(
         label = "glowAngle",
     )
 
+    // Slide the image up when the bottom sheet would cover the selection.
+    val marginPx = with(density) { 24.dp.toPx() }
+    val topReservedPx = with(density) { 72.dp.toPx() }
+    val targetShift = remember(selection, fit, bottomInsetPx, containerSize) {
+        if (selection == null || fit == null || bottomInsetPx <= 0f) {
+            0f
+        } else {
+            SelectionMath.verticalShiftToReveal(
+                selectionInView = fit.imageToView(selection),
+                containerHeight = containerSize.height,
+                bottomInset = bottomInsetPx + marginPx,
+                topReserved = topReservedPx,
+            )
+        }
+    }
+    val shift by animateFloatAsState(targetShift, label = "imageShift")
+
     Box(
         Modifier
             .fillMaxSize()
+            // Placed before pointerInput, so touches are mapped back to unshifted coordinates.
+            .graphicsLayer { translationY = shift }
             .onSizeChanged { containerSize = it.toSize() }
             .pointerInput(Unit) {
                 awaitEachGesture {
@@ -384,75 +441,3 @@ private fun TopBar(showHint: Boolean, onClose: () -> Unit, modifier: Modifier = 
     }
 }
 
-@Composable
-private fun SelectionPanel(
-    selection: TraceSelection?,
-    onClearSelection: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    // Keep showing the last selection while the panel slides out.
-    val lastSelection = remember { mutableStateOf<TraceSelection?>(null) }
-    if (selection != null) lastSelection.value = selection
-
-    AnimatedVisibility(
-        visible = selection != null,
-        enter = slideInVertically { it } + fadeIn(),
-        exit = slideOutVertically { it } + fadeOut(),
-        modifier = modifier,
-    ) {
-        val shown = lastSelection.value ?: return@AnimatedVisibility
-        Surface(
-            shape = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp),
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            modifier = Modifier.fillMaxWidth(),
-        ) {
-            Column(
-                Modifier
-                    .navigationBarsPadding()
-                    .padding(20.dp)
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Image(
-                        bitmap = shown.crop,
-                        contentDescription = stringResource(R.string.trace_crop_description),
-                        contentScale = ContentScale.Fit,
-                        modifier = Modifier
-                            .size(96.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MaterialTheme.colorScheme.surfaceContainerHighest),
-                    )
-                    Spacer(Modifier.width(16.dp))
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Text(
-                            text = stringResource(R.string.trace_selection_title),
-                            style = MaterialTheme.typography.titleMedium,
-                        )
-                        Text(
-                            text = stringResource(
-                                R.string.trace_selection_size,
-                                shown.crop.width,
-                                shown.crop.height,
-                            ),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                        Text(
-                            text = stringResource(R.string.trace_ai_placeholder),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                }
-                Spacer(Modifier.height(16.dp))
-                Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                    OutlinedButton(onClick = onClearSelection, modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.trace_reset))
-                    }
-                    Button(onClick = {}, enabled = false, modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.trace_ask_ai))
-                    }
-                }
-            }
-        }
-    }
-}
